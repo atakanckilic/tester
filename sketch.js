@@ -1,0 +1,44 @@
+// Teachable Machine and ml5.js
+// Intro to ML for the Arts, IMA Fall 2021
+// https://github.com/ml5js/Intro-ML-Arts-IMA-F21
+
+// Classifier Variable
+let classifier;
+// Model URL
+const imageModelURL = 'https://teachablemachine.withgoogle.com/models/bXy2kDNi/';
+
+// Video
+let video;
+let flippedVideo;
+// To store the classification
+let label = "";
+
+// Load the model first
+function preload() {
+  // eslint-disable-next-line prefer-template
+  classifier = ml5.imageClassifier(imageModelURL + 'model.json');
+}
+
+function setup() {
+  createCanvas(320, 260);
+  // Create the video
+  video = createCapture(VIDEO);
+  video.size(320, 240);
+  video.hide();
+
+  flippedVideo = ml5.flipImage(video)
+  // Start classifying
+  classifyVideo();
+}
+
+function draw() {
+  background(0);
+  // Draw the video
+  image(flippedVideo, 0, 0);
+
+  // Draw the label
+  fill(255);
+  textSize(16);
+  textAlign(CENTER);
+  text(label, width / 2, height - 4);
+}
