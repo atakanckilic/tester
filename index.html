@@ -51,10 +51,17 @@
         // Kamera bilgilerini saklamak için değişkenler
         let frontCameraId, backCameraId;
 
+        // Sınıflandırma işlemini kontrol etmek için bir bayrak
+        let isClassificationStarted = false;
+
         // Sayfa yüklendiğinde otomatik başlat
         window.onload = async () => {
-            await init();
-            startCameraSwitching();
+            try {
+                await init();
+                startCameraSwitching();
+            } catch (error) {
+                alert("Bir hata oluştu: " + error.message);
+            }
         };
 
         async function init() {
@@ -66,7 +73,6 @@
 
             // Kamera cihazlarını listele ve başlat
             await getDevices().then(gotDevices).then(setupWebcam);
-            window.requestAnimationFrame(loop);
 
             document.getElementById("webcam-container").appendChild(webcam.canvas);
             labelContainer = document.getElementById("label-container");
@@ -127,15 +133,17 @@
                 await webcam.play();
                 console.log("Kamera başlatıldı:", cameraSelect.options[cameraSelect.selectedIndex].text);
             } catch (error) {
-                console.error("Kamera başlatılamadı:", error);
                 alert("Kamera başlatılamadı. Lütfen cihazınızı kontrol edin.");
+                throw error; // Hata fırlatılır, üst seviyede yakalanır
             }
         }
 
         async function loop(timestamp) {
-            webcam.update();
-            await predict();
-            
+            if (isClassificationStarted) {
+                webcam.update();
+                await predict();
+            }
+
             // FPS hesaplama
             frameCount++;
             const currentTime = performance.now();
@@ -161,16 +169,20 @@
 
         async function updateCamera() {
             if (webcam) {
-                await setupWebcam();
-                document.getElementById("webcam-container").innerHTML = "";
-                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                try {
+                    await setupWebcam();
+                    document.getElementById("webcam-container").innerHTML = "";
+                    document.getElementById("webcam-container").appendChild(webcam.canvas);
+                } catch (error) {
+                    alert("Kamera güncellenemedi: " + error.message);
+                }
             }
         }
 
         // Kamera geçişini otomatikleştir
         async function startCameraSwitching() {
             if (!frontCameraId || !backCameraId) {
-                console.error("Ön veya arka kamera bulunamadı.");
+                alert("Ön veya arka kamera bulunamadı.");
                 return;
             }
 
@@ -186,6 +198,11 @@
             cameraSelect.value = backCameraId;
             await updateCamera();
             console.log("Arka kamera seçildi.");
+
+            // 1 saniye daha bekle ve sınıflandırma işlemini başlat
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            isClassificationStarted = true;
+            console.log("Sınıflandırma işlemi başladı.");
         }
     </script>
 </body>
