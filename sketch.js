@@ -21,8 +21,13 @@ const facingModes = [
 ];
 let selectedFacingMode = 0;
 
+// FPS sınırlama seçenekleri
+const fpsOptions = [10, 15, 20, 25, 30];
+let selectedFPSIndex = 2; // Varsayılan 20 FPS
+
 let sizeDropdown;
 let cameraDropdown;
+let fpsDropdown;
 
 function preload() {
   classifier = ml5.imageClassifier(imageModelURL + 'model.json');
@@ -47,7 +52,17 @@ function setup() {
   }
   cameraDropdown.changed(updateCameraFacing);
   
+  // FPS seçim dropdown
+  fpsDropdown = createSelect();
+  fpsDropdown.position(10, 70);
+  for (let fps of fpsOptions) {
+    fpsDropdown.option(fps);
+  }
+  fpsDropdown.selected(fpsOptions[selectedFPSIndex]); // Varsayılan 20 FPS
+  fpsDropdown.changed(updateFPS);
+  
   setupVideo();
+  frameRate(fpsOptions[selectedFPSIndex]); // Başlangıç FPS ayarı
   flippedVideo = ml5.flipImage(video);
   classifyVideo();
 }
@@ -79,20 +94,25 @@ function updateCameraFacing() {
   flippedVideo = ml5.flipImage(video);
 }
 
+function updateFPS() {
+  selectedFPSIndex = fpsDropdown.elt.selectedIndex;
+  frameRate(fpsOptions[selectedFPSIndex]); // FPS'i güncelle
+}
+
 function draw() {
   background(0);
   image(flippedVideo, 0, 0, width, height);
   
-  // FPS için siyah arka planlı kutu
-  fill(0); // Siyah arka plan
-  rect(width - 70, 0, 70, 25); // Sağ üstte 70x25 boyutunda kutu
+  // FPS için siyah arka planlı kutu (font büyüyünce kutu da büyüdü)
+  fill(0);
+  rect(width - 210, 0, 210, 75); // 3 kat büyük font için kutu boyutunu artırdık
   
-  // FPS kırmızı yazı
+  // FPS kırmızı yazı (font 3 katına çıktı: 16 -> 48)
   fps = frameRate();
-  fill(255, 0, 0); // Kırmızı renk
-  textSize(16);
+  fill(255, 0, 0);
+  textSize(48); // 16'nın 3 katı
   textAlign(RIGHT);
-  text(`FPS: ${fps.toFixed(1)}`, width - 5, 18);
+  text(`FPS: ${fps.toFixed(1)}`, width - 15, 54); // Y koordinatı kutuya uyumlu
   
   // Label'ı alt kısımda beyaz yazıyla gösterme
   fill(255);
