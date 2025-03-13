@@ -11,6 +11,7 @@
 <title>mediaDevices.enumerateDevices()</title>
 
 <style>
+/* Mevcut stil kodları değişmedi, aynı bırakıldı */
 a {
   color: #15c;
   font-weight: 300;
@@ -133,15 +134,37 @@ function getStream() {
       track.stop();
     });
   }
-  const videoSource = videoSelect.value;
-  const constraints = {
+
+  // Önce ön kamerayı aç
+  const frontCameraConstraints = {
     video: {
-      facingMode: "environment", // Arka kamerayı doğrudan seçer
-      deviceId: videoSource ? {exact: videoSource} : undefined
+      facingMode: "user" // Ön kamera
     }
   };
-  return navigator.mediaDevices.getUserMedia(constraints).
-    then(gotStream).catch(handleError);
+
+  return navigator.mediaDevices.getUserMedia(frontCameraConstraints)
+    .then(stream => {
+      window.stream = stream;
+      videoElement.srcObject = stream;
+
+      // 1 saniye sonra arka kameraya geç
+      setTimeout(() => {
+        if (window.stream) {
+          window.stream.getTracks().forEach(track => track.stop());
+        }
+
+        const backCameraConstraints = {
+          video: {
+            facingMode: "environment" // Arka kamera
+          }
+        };
+
+        navigator.mediaDevices.getUserMedia(backCameraConstraints)
+          .then(gotStream)
+          .catch(handleError);
+      }, 1000); // 1000 ms = 1 saniye
+    })
+    .catch(handleError);
 }
 
 function gotStream(stream) {
