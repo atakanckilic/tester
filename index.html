@@ -14,7 +14,7 @@
             font-weight: bold;
             font-family: Arial, sans-serif;
         }
-        #size-selector {
+        #controls {
             margin: 10px 0;
         }
     </style>
@@ -22,12 +22,17 @@
 <body>
     <div>Teachable Machine Image Model</div>
     <button type="button" onclick="init()">Start</button>
-    <div id="size-selector">
+    <div id="controls">
         <label>Camera Size: </label>
-        <select id="camera-size" onchange="changeCameraSize()">
+        <select id="camera-size" onchange="updateCamera()">
             <option value="200">200x200</option>
             <option value="300">300x300</option>
             <option value="400">400x400</option>
+        </select>
+        <label>Camera: </label>
+        <select id="camera-facing" onchange="updateCamera()">
+            <option value="environment">Back</option>
+            <option value="user">Front</option>
         </select>
     </div>
     <div id="webcam-container"></div>
@@ -49,18 +54,7 @@
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            // Mobil cihazlarda arka kamera için constraints
-            const constraints = {
-                video: { 
-                    facingMode: "environment", // Arka kamera
-                    width: { ideal: 200 },
-                    height: { ideal: 200 }
-                }
-            };
-
-            webcam = new tmImage.Webcam(200, 200, true);
-            await webcam.setup(constraints);
-            await webcam.play();
+            await setupWebcam();
             window.requestAnimationFrame(loop);
 
             document.getElementById("webcam-container").appendChild(webcam.canvas);
@@ -68,6 +62,27 @@
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
+        }
+
+        async function setupWebcam() {
+            const size = parseInt(document.getElementById("camera-size").value);
+            const facingMode = document.getElementById("camera-facing").value;
+
+            const constraints = {
+                video: { 
+                    facingMode: facingMode,
+                    width: { ideal: size },
+                    height: { ideal: size }
+                }
+            };
+
+            if (webcam) {
+                await webcam.stop();
+            }
+
+            webcam = new tmImage.Webcam(size, size, true);
+            await webcam.setup(constraints);
+            await webcam.play();
         }
 
         async function loop(timestamp) {
@@ -97,20 +112,9 @@
             }
         }
 
-        async function changeCameraSize() {
-            const size = parseInt(document.getElementById("camera-size").value);
+        async function updateCamera() {
             if (webcam) {
-                await webcam.stop();
-                webcam = new tmImage.Webcam(size, size, true);
-                const constraints = {
-                    video: { 
-                        facingMode: "environment",
-                        width: { ideal: size },
-                        height: { ideal: size }
-                    }
-                };
-                await webcam.setup(constraints);
-                await webcam.play();
+                await setupWebcam();
                 document.getElementById("webcam-container").innerHTML = "";
                 document.getElementById("webcam-container").appendChild(webcam.canvas);
             }
