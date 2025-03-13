@@ -20,6 +20,8 @@ function preload() {
 }
 
 function setup() {
+  // FPS yazdırma!
+  // FPS sınırlandırma
   createCanvas(320*2, 260*2);
   // Create the video
   video = createCapture(VIDEO);
