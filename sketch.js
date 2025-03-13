@@ -4,7 +4,6 @@ const imageModelURL = 'https://teachablemachine.withgoogle.com/models/_y1fWFlQL/
 let video;
 let flippedVideo;
 let label = "";
-let fps = 0;
 
 // Kamera boyutu seçenekleri
 const sizeOptions = [
@@ -20,14 +19,8 @@ const facingModes = [
   { name: "Ön Kamera", value: "user" }
 ];
 let selectedFacingMode = 0;
-
-// FPS sınırlama seçenekleri
-const fpsOptions = [10, 15, 20, 25, 30];
-let selectedFPSIndex = 2; // Varsayılan 20 FPS
-
 let sizeDropdown;
 let cameraDropdown;
-let fpsDropdown;
 
 function preload() {
   classifier = ml5.imageClassifier(imageModelURL + 'model.json');
@@ -52,17 +45,7 @@ function setup() {
   }
   cameraDropdown.changed(updateCameraFacing);
   
-  // FPS seçim dropdown
-  fpsDropdown = createSelect();
-  fpsDropdown.position(10, 70);
-  for (let fps of fpsOptions) {
-    fpsDropdown.option(fps);
-  }
-  fpsDropdown.selected(fpsOptions[selectedFPSIndex]); // Varsayılan 20 FPS
-  fpsDropdown.changed(updateFPS);
-  
   setupVideo();
-  frameRate(fpsOptions[selectedFPSIndex]); // Başlangıç FPS ayarı
   flippedVideo = ml5.flipImage(video);
   classifyVideo();
 }
@@ -92,11 +75,6 @@ function updateCameraFacing() {
   selectedFacingMode = cameraDropdown.elt.selectedIndex;
   setupVideo();
   flippedVideo = ml5.flipImage(video);
-}
-
-function updateFPS() {
-  selectedFPSIndex = fpsDropdown.elt.selectedIndex;
-  frameRate(fpsOptions[selectedFPSIndex]); // FPS'i güncelle
 }
 
 function draw() {
