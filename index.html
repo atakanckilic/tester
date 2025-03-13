@@ -31,7 +31,7 @@
         </select>
         <label>Camera: </label>
         <select id="camera-facing" onchange="updateCamera()">
-            <option value="user">user</option>
+            <option value="environment">Back</option>
             <option value="user">Front</option>
         </select>
     </div>
@@ -93,7 +93,8 @@
                 console.error("Kamera başlatılamadı:", error);
                 // Eğer arka kamera başarısız olursa ön kamerayı dene
                 if (facingMode === "environment") {
-                    console.log("Arka kamera başarısız, ön kameraya geçiliyor...");
+                    //console.log("Arka kamera başarısız, ön kameraya geçiliyor...");
+                    alert("Arka kamera başarısız, ön kameraya geçiliyor...");
                     constraints.video.facingMode = { exact: "user" };
                     await webcam.setup(constraints);
                     await webcam.play();
