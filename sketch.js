@@ -20,15 +20,15 @@ function preload() {
 }
 
 function setup() {
-  /*
-  createCanvas(320, 260);
+  createCanvas(320*2, 260*2);
   // Create the video
   video = createCapture(VIDEO);
-  video.size(320, 240);
+  video.size(320*2, 240*2);
   video.hide();
-  */
+  
 
 //-------------------------
+/*
 // Ekranın gerçek genişliğini ve yüksekliğini al
 createCanvas(windowWidth, windowHeight);
 
@@ -41,6 +41,7 @@ video = createCapture(VIDEO);
 // Videoyu ekran boyutlarına sığdır (orantıyı koruyarak)
 video.size(width, height); // Genişlik ve yüksekliği ekran boyutlarına ayarla
 video.hide();
+*/
 //-------------------------
 
   
@@ -56,7 +57,7 @@ function draw() {
 
   // Draw the label
   fill(255);
-  textSize(16);
+  textSize(20);
   textAlign(CENTER);
   text(label, width / 2, height - 4);
 }
