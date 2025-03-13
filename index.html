@@ -1,0 +1,160 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webcam Image Classification using MobileNet and ml5.js</title>
+    <style>
+        #fps {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: black;
+            color: white;
+            padding: 5px 10px;
+            font-weight: bold;
+            font-family: Arial, sans-serif;
+        }
+        #controls {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div>Teachable Machine Image Model</div>
+    <button type="button" onclick="init()">Start</button>
+    <div id="controls">
+        <label>Camera Size: </label>
+        <select id="camera-size" onchange="updateCamera()">
+            <option value="200">200x200</option>
+            <option value="300">300x300</option>
+            <option value="400">400x400</option>
+        </select>
+        <label>Camera: </label>
+        <select id="camera-facing" onchange="updateCamera()">
+            <option value="environment">Back</option>
+            <option value="user">Front</option>
+        </select>
+    </div>
+    <div id="webcam-container"></div>
+    <div id="fps">FPS: 0</div>
+    <div id="label-container"></div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <script type="text/javascript">
+        const URL = "https://teachablemachine.withgoogle.com/models/afVbR2wifH/";
+        let model, webcam, labelContainer, maxPredictions;
+        let lastFrameTime = performance.now();
+        let frameCount = 0;
+
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+
+            model = await tmImage.load(modelURL, metadataURL);
+            maxPredictions = model.getTotalClasses();
+
+            await setupWebcam();
+            window.requestAnimationFrame(loop);
+
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+
+        async function setupWebcam() {
+            const size = parseInt(document.getElementById("camera-size").value);
+            const facingMode = document.getElementById("camera-facing").value;
+
+            // Mevcut webcam'i durdur
+            if (webcam) {
+                await webcam.stop();
+            }
+
+            // Yeni webcam oluştur
+            webcam = new tmImage.Webcam(size, size, true); // true: yatay çevirme
+
+            const constraints = {
+                video: {
+                    facingMode: { ideal: facingMode },
+                    width: { ideal: size },
+                    height: { ideal: size }
+                }
+            };
+
+            try {
+                console.log("Kamera ayarları:", constraints);
+                // Önce ön kamerayı aç
+                constraints.video.facingMode = { ideal: "user" }; // İlk kodda olduğu gibi ön kamera öncelikli
+                await webcam.setup(constraints);
+                await webcam.play();
+                console.log("Ön kamera başlatıldı");
+
+                // 1 saniye sonra arka kameraya geç (isteğe bağlı)
+                setTimeout(async () => {
+                    await webcam.stop();
+                    constraints.video.facingMode = { ideal: "environment" }; // Arka kamera
+                    try {
+                        await webcam.setup(constraints);
+                        await webcam.play();
+                        document.getElementById("camera-facing").value = "environment"; // Dropdown'ı güncelle
+                        console.log("Arka kamera başlatıldı");
+                    } catch (error) {
+                        console.error("Arka kamera başlatılamadı:", error);
+                    }
+                }, 1000); // 1000 ms = 1 saniye
+            } catch (error) {
+                console.error("Kamera başlatılamadı:", error);
+                // Eğer ön kamera başarısız olursa arka kamerayı dene
+                constraints.video.facingMode = { ideal: "environment" };
+                try {
+                    await webcam.setup(constraints);
+                    await webcam.play();
+                    document.getElementById("camera-facing").value = "environment";
+                    console.log("Arka kamera yedek olarak başlatıldı");
+                } catch (e) {
+                    console.error("Arka kamera da başlatılamadı:", e);
+                    alert("Kamera başlatılamadı. Lütfen cihazınızı kontrol edin.");
+                }
+            }
+        }
+
+        async function loop(timestamp) {
+            webcam.update();
+            await predict();
+            
+            // FPS hesaplama
+            frameCount++;
+            const currentTime = performance.now();
+            const deltaTime = (currentTime - lastFrameTime) / 1000;
+            if (deltaTime >= 1) {
+                const fps = Math.round(frameCount / deltaTime);
+                document.getElementById("fps").textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                lastFrameTime = currentTime;
+            }
+
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const prediction = await model.predict(webcam.canvas);
+            for (let i = 0; i < maxPredictions; i++) {
+                const classPrediction =
+                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
+            }
+        }
+
+        async function updateCamera() {
+            if (webcam) {
+                await setupWebcam();
+                document.getElementById("webcam-container").innerHTML = "";
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+            }
+        }
+    </script>
+</body>
+</html>
