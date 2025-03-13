@@ -68,21 +68,38 @@
             const size = parseInt(document.getElementById("camera-size").value);
             const facingMode = document.getElementById("camera-facing").value;
 
+            // Mevcut webcam'i durdur
+            if (webcam) {
+                await webcam.stop();
+            }
+
+            // Yeni webcam oluştur
+            webcam = new tmImage.Webcam(size, size, true); // true: yatay çevirme
+
             const constraints = {
-                video: { 
-                    facingMode: facingMode,
+                video: {
+                    facingMode: { exact: facingMode }, // exact ile kesin seçim
                     width: { ideal: size },
                     height: { ideal: size }
                 }
             };
 
-            if (webcam) {
-                await webcam.stop();
+            try {
+                console.log("Kamera ayarları:", constraints);
+                await webcam.setup(constraints);
+                await webcam.play();
+                console.log(`Kamera başlatıldı: ${facingMode}`);
+            } catch (error) {
+                console.error("Kamera başlatılamadı:", error);
+                // Eğer arka kamera başarısız olursa ön kamerayı dene
+                if (facingMode === "environment") {
+                    console.log("Arka kamera başarısız, ön kameraya geçiliyor...");
+                    constraints.video.facingMode = { exact: "user" };
+                    await webcam.setup(constraints);
+                    await webcam.play();
+                    document.getElementById("camera-facing").value = "user";
+                }
             }
-
-            webcam = new tmImage.Webcam(size, size, true);
-            await webcam.setup(constraints);
-            await webcam.play();
         }
 
         async function loop(timestamp) {
