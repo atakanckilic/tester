@@ -12,39 +12,54 @@ const sizeOptions = [
   { width: 640, height: 480, name: "640x480" },
   { width: 1280, height: 960, name: "1280x960" }
 ];
-let selectedSizeIndex = 0; // Varsayılan olarak ilk seçenek
-let dropdown;
+let selectedSizeIndex = 0;
+
+// Kamera yönü seçenekleri
+const facingModes = [
+  { name: "Arka Kamera", value: "environment" },
+  { name: "Ön Kamera", value: "user" }
+];
+let selectedFacingMode = 0;
+
+let sizeDropdown;
+let cameraDropdown;
 
 function preload() {
   classifier = ml5.imageClassifier(imageModelURL + 'model.json');
 }
 
 function setup() {
-  // Canvas'ı başlangıç boyutuyla oluştur
   createCanvas(sizeOptions[selectedSizeIndex].width, sizeOptions[selectedSizeIndex].height);
   
-  // Dropdown menü oluştur
-  dropdown = createSelect();
-  dropdown.position(10, 10);
+  // Boyut seçim dropdown
+  sizeDropdown = createSelect();
+  sizeDropdown.position(10, 10);
   for (let option of sizeOptions) {
-    dropdown.option(option.name);
+    sizeDropdown.option(option.name);
   }
-  dropdown.changed(updateVideoSize);
+  sizeDropdown.changed(updateVideoSize);
   
-  // Video oluştur
+  // Kamera yönü seçim dropdown
+  cameraDropdown = createSelect();
+  cameraDropdown.position(10, 40);
+  for (let mode of facingModes) {
+    cameraDropdown.option(mode.name);
+  }
+  cameraDropdown.changed(updateCameraFacing);
+  
   setupVideo();
-  
   flippedVideo = ml5.flipImage(video);
   classifyVideo();
 }
 
 function setupVideo() {
-  if (video) video.remove(); // Eski videoyu kaldır
+  if (video) video.remove();
   
   video = createCapture({
     video: {
       width: sizeOptions[selectedSizeIndex].width,
-      height: sizeOptions[selectedSizeIndex].height
+      height: sizeOptions[selectedSizeIndex].height,
+      facingMode: facingModes[selectedFacingMode].value
     }
   });
   video.size(sizeOptions[selectedSizeIndex].width, sizeOptions[selectedSizeIndex].height);
@@ -52,26 +67,34 @@ function setupVideo() {
 }
 
 function updateVideoSize() {
-  selectedSizeIndex = dropdown.elt.selectedIndex;
+  selectedSizeIndex = sizeDropdown.elt.selectedIndex;
   resizeCanvas(sizeOptions[selectedSizeIndex].width, sizeOptions[selectedSizeIndex].height);
+  setupVideo();
+  flippedVideo = ml5.flipImage(video);
+}
+
+function updateCameraFacing() {
+  selectedFacingMode = cameraDropdown.elt.selectedIndex;
   setupVideo();
   flippedVideo = ml5.flipImage(video);
 }
 
 function draw() {
   background(0);
-  
-  // Videoyu orantılı şekilde çiz
   image(flippedVideo, 0, 0, width, height);
   
-  // FPS hesaplama ve görüntüleme (üstte kalacak)
-  fps = frameRate();
-  fill(255);
-  textSize(16);
-  textAlign(LEFT);
-  text(`FPS: ${fps.toFixed(1)}`, 10, 30); // Dropdown'un altına yerleştiriyoruz
+  // FPS için siyah arka planlı kutu
+  fill(0); // Siyah arka plan
+  rect(width - 70, 0, 70, 25); // Sağ üstte 70x25 boyutunda kutu
   
-  // Label'ı alt kısımda gösterme
+  // FPS kırmızı yazı
+  fps = frameRate();
+  fill(255, 0, 0); // Kırmızı renk
+  textSize(16);
+  textAlign(RIGHT);
+  text(`FPS: ${fps.toFixed(1)}`, width - 5, 18);
+  
+  // Label'ı alt kısımda beyaz yazıyla gösterme
   fill(255);
   textSize(20);
   textAlign(CENTER);
