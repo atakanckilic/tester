@@ -20,12 +20,30 @@ function preload() {
 }
 
 function setup() {
+  /*
   createCanvas(320, 260);
   // Create the video
   video = createCapture(VIDEO);
   video.size(320, 240);
   video.hide();
+  */
 
+//-------------------------
+// Ekranın gerçek genişliğini ve yüksekliğini al
+createCanvas(windowWidth, windowHeight);
+
+// Kamerayı oluştur ve boyutlarını ayarla
+video = createCapture(VIDEO);
+
+// Video akışının doğal en-boy oranını al (isteğe bağlı, ancak orantıyı daha hassas kontrol etmek için faydalı olabilir)
+// const aspectRatio = video.width / video.height;
+
+// Videoyu ekran boyutlarına sığdır (orantıyı koruyarak)
+video.size(width, height); // Genişlik ve yüksekliği ekran boyutlarına ayarla
+video.hide();
+//-------------------------
+
+  
   flippedVideo = ml5.flipImage(video)
   // Start classifying
   classifyVideo();
