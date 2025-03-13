@@ -1,209 +1,186 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webcam Image Classification using MobileNet and ml5.js</title>
-    <style>
-        #fps {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: black;
-            color: white;
-            padding: 5px 10px;
-            font-weight: bold;
-            font-family: Arial, sans-serif;
-        }
-        #controls {
-            margin: 10px 0;
-        }
-        select {
-            width: 150px;
-            margin: 0 1em 1em 0;
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta itemprop="name" content="simpl.info: simplest possible examples of HTML, CSS and JavaScript">
+<meta id="theme-color" name="theme-color" content="#fff">
+
+<base target="_blank">
+
+<title>mediaDevices.enumerateDevices()</title>
+
+<style>
+/* Mevcut stil kodları değişmedi, aynı bırakıldı */
+a {
+  color: #15c;
+  font-weight: 300;
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+body {
+  font-family: sans-serif;
+  font-size: 18px;
+  font-weight: 300;
+  margin: 0;
+  padding: 40px 20px 20px 20px;
+  word-break: break-word;
+}
+
+div#container {
+  margin: 0 auto 0 auto;
+  max-width: 40em;
+  padding: 1em 1.5em 1.3em 1.5em;
+}
+
+h1 {
+  border-bottom: 1px solid #ccc;
+  font-family: sans-serif;
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 0.8em 0;
+  padding: 0 0 0.2em 0;
+}
+
+html {
+  overflow-y: scroll;
+}
+
+select {
+  margin: 0 1em 1em 0;
+  position: relative;
+  top: -1px;
+}
+
+video {
+  background: #222;
+  margin: 0 0 20px 0;
+  width: 100%;
+}
+
+@media (min-width: 550px) {
+  body {
+    font-size: 16px;
+    padding: 1em;
+  }
+
+  h1 {
+    font-size: 28px;
+  }
+}
+
+@media (min-width: 750px) {
+  h1 {
+    font-size: 30px;
+  }
+}
+
+h1 {
+  margin: 0 0 24px 0;
+}
+select {
+  width: 150px;
+}
+video {
+  margin: 10px 0 0 0;
+}
+</style>
+
 </head>
+
 <body>
-    <div>Teachable Machine Image Model</div>
-    <div id="controls">
-        <label>Camera Size: </label>
-        <select id="camera-size" onchange="updateCamera()">
-            <option value="200">200x200</option>
-            <option value="300">300x300</option>
-            <option value="400">400x400</option>
-        </select>
-        <label>Camera: </label>
-        <select id="camera-facing" onchange="updateCamera()"></select>
-    </div>
-    <div id="webcam-container"></div>
-    <div id="fps">FPS: 0</div>
-    <div id="label-container"></div>
 
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
-    <script type="text/javascript">
-        const URL = "https://teachablemachine.withgoogle.com/models/afVbR2wifH/";
-        let model, webcam, labelContainer, maxPredictions;
-        let lastFrameTime = performance.now();
-        let frameCount = 0;
-        const cameraSelect = document.getElementById("camera-facing");
+<div id="container">
 
-        // Kamera bilgilerini saklamak için değişkenler
-        let frontCameraId, backCameraId;
+  <div class="select">
+    <label for="videoSource">Video source: </label><select id="videoSource"></select>
+  </div>
 
-        // Sınıflandırma işlemini kontrol etmek için bir bayrak
-        let isClassificationStarted = false;
+  <video autoplay muted playsinline></video>
 
-        // Sayfa yüklendiğinde otomatik başlat
-        window.onload = async () => {
-            try {
-                await init();
-                startCameraSwitching();
-            } catch (error) {
-                alert("Bir hata oluştu: " + error.message);
-            }
+  <script>
+
+var videoElement = document.querySelector('video');
+var videoSelect = document.querySelector('select#videoSource');
+
+videoSelect.onchange = getStream;
+
+getStream().then(getDevices).then(gotDevices);
+
+function getDevices() {
+  return navigator.mediaDevices.enumerateDevices();
+}
+
+function gotDevices(deviceInfos) {
+  window.deviceInfos = deviceInfos;
+  console.log('Available input and output devices:', deviceInfos);
+  for (const deviceInfo of deviceInfos) {
+    const option = document.createElement('option');
+    option.value = deviceInfo.deviceId;
+    if (deviceInfo.kind === 'videoinput') {
+      option.text = deviceInfo.label || `Camera ${videoSelect.length + 1}`;
+      videoSelect.appendChild(option);
+    }
+  }
+}
+
+function getStream() {
+  if (window.stream) {
+    window.stream.getTracks().forEach(track => {
+      track.stop();
+    });
+  }
+
+  // Önce ön kamerayı aç
+  const frontCameraConstraints = {
+    video: {
+      facingMode: "user" // Ön kamera
+    }
+  };
+
+  return navigator.mediaDevices.getUserMedia(frontCameraConstraints)
+    .then(stream => {
+      window.stream = stream;
+      videoElement.srcObject = stream;
+
+      // 1 saniye sonra arka kameraya geç
+      setTimeout(() => {
+        if (window.stream) {
+          window.stream.getTracks().forEach(track => track.stop());
+        }
+
+        const backCameraConstraints = {
+          video: {
+            facingMode: "environment" // Arka kamera
+          }
         };
 
-        async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
+        navigator.mediaDevices.getUserMedia(backCameraConstraints)
+          .then(gotStream)
+          .catch(handleError);
+      }, 1000); // 1000 ms = 1 saniye
+    })
+    .catch(handleError);
+}
 
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+function gotStream(stream) {
+  window.stream = stream;
+  videoSelect.selectedIndex = [...videoSelect.options].
+    findIndex(option => option.text === stream.getVideoTracks()[0].label);
+  videoElement.srcObject = stream;
+}
 
-            // Kamera cihazlarını listele ve başlat
-            await getDevices().then(gotDevices).then(setupWebcam);
+function handleError(error) {
+  console.error('Error: ', error);
+}
 
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
-            }
-        }
+  </script>
 
-        // Kamera cihazlarını listeleme
-        async function getDevices() {
-            return navigator.mediaDevices.enumerateDevices();
-        }
+</div>
 
-        function gotDevices(deviceInfos) {
-            cameraSelect.innerHTML = ""; // Önceki seçenekleri temizle
-            window.deviceInfos = deviceInfos;
-            console.log("Kullanılabilir cihazlar:", deviceInfos);
-            for (const deviceInfo of deviceInfos) {
-                if (deviceInfo.kind === "videoinput") {
-                    const option = document.createElement("option");
-                    option.value = deviceInfo.deviceId;
-                    option.text = deviceInfo.label || `Camera ${cameraSelect.length + 1}`;
-                    cameraSelect.appendChild(option);
-
-                    // Ön ve arka kamera ID'lerini ayarla
-                    if (deviceInfo.label.toLowerCase().includes("front")) {
-                        frontCameraId = deviceInfo.deviceId;
-                    } else if (deviceInfo.label.toLowerCase().includes("back")) {
-                        backCameraId = deviceInfo.deviceId;
-                    }
-                }
-            }
-        }
-
-        async function setupWebcam() {
-            const size = parseInt(document.getElementById("camera-size").value);
-            const deviceId = cameraSelect.value;
-
-            // Mevcut webcam'i durdur
-            if (webcam) {
-                await webcam.stop();
-            }
-
-            // Yeni webcam oluştur
-            webcam = new tmImage.Webcam(size, size, true); // true: yatay çevirme
-
-            const constraints = {
-                video: {
-                    deviceId: deviceId ? { exact: deviceId } : undefined, // Seçilen cihazı kullan
-                    width: { ideal: size },
-                    height: { ideal: size }
-                }
-            };
-
-            try {
-                console.log("Kamera ayarları:", constraints);
-                await webcam.setup(constraints);
-                await webcam.play();
-                console.log("Kamera başlatıldı:", cameraSelect.options[cameraSelect.selectedIndex].text);
-            } catch (error) {
-                alert("Kamera başlatılamadı. Lütfen cihazınızı kontrol edin.");
-                throw error; // Hata fırlatılır, üst seviyede yakalanır
-            }
-        }
-
-        async function loop(timestamp) {
-            if (isClassificationStarted) {
-                webcam.update();
-                await predict();
-            }
-
-            // FPS hesaplama
-            frameCount++;
-            const currentTime = performance.now();
-            const deltaTime = (currentTime - lastFrameTime) / 1000;
-            if (deltaTime >= 1) {
-                const fps = Math.round(frameCount / deltaTime);
-                document.getElementById("fps").textContent = `FPS: ${fps}`;
-                frameCount = 0;
-                lastFrameTime = currentTime;
-            }
-
-            window.requestAnimationFrame(loop);
-        }
-
-        async function predict() {
-            const prediction = await model.predict(webcam.canvas);
-            for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction =
-                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-                labelContainer.childNodes[i].innerHTML = classPrediction;
-            }
-        }
-
-        async function updateCamera() {
-            if (webcam) {
-                try {
-                    await setupWebcam();
-                    document.getElementById("webcam-container").innerHTML = "";
-                    document.getElementById("webcam-container").appendChild(webcam.canvas);
-                } catch (error) {
-                    alert("Kamera güncellenemedi: " + error.message);
-                }
-            }
-        }
-
-        // Kamera geçişini otomatikleştir
-        async function startCameraSwitching() {
-            if (!frontCameraId || !backCameraId) {
-                alert("Ön veya arka kamera bulunamadı.");
-                return;
-            }
-
-            // Önce ön kamerayı seç
-            cameraSelect.value = frontCameraId;
-            await updateCamera();
-            console.log("Ön kamera seçildi.");
-
-            // 1 saniye bekle
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            // Sonra arka kamerayı seç
-            cameraSelect.value = backCameraId;
-            await updateCamera();
-            console.log("Arka kamera seçildi.");
-
-            // 1 saniye daha bekle ve sınıflandırma işlemini başlat
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            isClassificationStarted = true;
-            console.log("Sınıflandırma işlemi başladı.");
-        }
-    </script>
 </body>
 </html>
