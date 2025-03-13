@@ -17,11 +17,14 @@
         #controls {
             margin: 10px 0;
         }
+        select {
+            width: 150px;
+            margin: 0 1em 1em 0;
+        }
     </style>
 </head>
 <body>
     <div>Teachable Machine Image Model</div>
-    <button type="button" onclick="init()">Start</button>
     <div id="controls">
         <label>Camera Size: </label>
         <select id="camera-size" onchange="updateCamera()">
@@ -30,10 +33,7 @@
             <option value="400">400x400</option>
         </select>
         <label>Camera: </label>
-        <select id="camera-facing" onchange="updateCamera()">
-            <option value="environment">Back</option>
-            <option value="user">Front</option>
-        </select>
+        <select id="camera-facing" onchange="updateCamera()"></select>
     </div>
     <div id="webcam-container"></div>
     <div id="fps">FPS: 0</div>
@@ -46,6 +46,12 @@
         let model, webcam, labelContainer, maxPredictions;
         let lastFrameTime = performance.now();
         let frameCount = 0;
+        const cameraSelect = document.getElementById("camera-facing");
+
+        // Sayfa yüklendiğinde otomatik başlat
+        window.onload = () => {
+            init();
+        };
 
         async function init() {
             const modelURL = URL + "model.json";
@@ -54,7 +60,8 @@
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            await setupWebcam();
+            // Kamera cihazlarını listele ve başlat
+            await getDevices().then(gotDevices).then(setupWebcam);
             window.requestAnimationFrame(loop);
 
             document.getElementById("webcam-container").appendChild(webcam.canvas);
@@ -64,9 +71,28 @@
             }
         }
 
+        // Kamera cihazlarını listeleme (ilk kodda olduğu gibi)
+        async function getDevices() {
+            return navigator.mediaDevices.enumerateDevices();
+        }
+
+        function gotDevices(deviceInfos) {
+            cameraSelect.innerHTML = ""; // Önceki seçenekleri temizle
+            window.deviceInfos = deviceInfos;
+            console.log("K可用 cihazlar:", deviceInfos);
+            for (const deviceInfo of deviceInfos) {
+                if (deviceInfo.kind === "videoinput") {
+                    const option = document.createElement("option");
+                    option.value = deviceInfo.deviceId;
+                    option.text = deviceInfo.label || `Camera ${cameraSelect.length + 1}`;
+                    cameraSelect.appendChild(option);
+                }
+            }
+        }
+
         async function setupWebcam() {
             const size = parseInt(document.getElementById("camera-size").value);
-            const facingMode = document.getElementById("camera-facing").value;
+            const deviceId = cameraSelect.value;
 
             // Mevcut webcam'i durdur
             if (webcam) {
@@ -78,7 +104,7 @@
 
             const constraints = {
                 video: {
-                    facingMode: { ideal: facingMode },
+                    deviceId: deviceId ? { exact: deviceId } : undefined, // Seçilen cihazı kullan
                     width: { ideal: size },
                     height: { ideal: size }
                 }
@@ -86,38 +112,12 @@
 
             try {
                 console.log("Kamera ayarları:", constraints);
-                // Önce ön kamerayı aç
-                constraints.video.facingMode = { ideal: "user" }; // İlk kodda olduğu gibi ön kamera öncelikli
                 await webcam.setup(constraints);
                 await webcam.play();
-                console.log("Ön kamera başlatıldı");
-
-                // 1 saniye sonra arka kameraya geç (isteğe bağlı)
-                setTimeout(async () => {
-                    await webcam.stop();
-                    constraints.video.facingMode = { ideal: "environment" }; // Arka kamera
-                    try {
-                        await webcam.setup(constraints);
-                        await webcam.play();
-                        document.getElementById("camera-facing").value = "environment"; // Dropdown'ı güncelle
-                        console.log("Arka kamera başlatıldı");
-                    } catch (error) {
-                        console.error("Arka kamera başlatılamadı:", error);
-                    }
-                }, 1000); // 1000 ms = 1 saniye
+                console.log("Kamera başlatıldı:", cameraSelect.options[cameraSelect.selectedIndex].text);
             } catch (error) {
                 console.error("Kamera başlatılamadı:", error);
-                // Eğer ön kamera başarısız olursa arka kamerayı dene
-                constraints.video.facingMode = { ideal: "environment" };
-                try {
-                    await webcam.setup(constraints);
-                    await webcam.play();
-                    document.getElementById("camera-facing").value = "environment";
-                    console.log("Arka kamera yedek olarak başlatıldı");
-                } catch (e) {
-                    console.error("Arka kamera da başlatılamadı:", e);
-                    alert("Kamera başlatılamadı. Lütfen cihazınızı kontrol edin.");
-                }
+                alert("Kamera başlatılamadı. Lütfen cihazınızı kontrol edin.");
             }
         }
 
