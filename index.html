@@ -44,8 +44,8 @@
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <script type="text/javascript">
         const URL = "https://teachablemachine.withgoogle.com/models/afVbR2wifH/";
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        document.getElementById("deviceID").textContent = devices[0].deviceId;
+        //const devices = await navigator.mediaDevices.enumerateDevices();
+        //document.getElementById("deviceID").textContent = devices[0].deviceId;
         let model, webcam, labelContainer, maxPredictions;
         let lastFrameTime = performance.now();
         let frameCount = 0;
@@ -78,7 +78,9 @@
 
             // Yeni webcam oluştur
             webcam = new tmImage.Webcam(size, size, true); // true: yatay çevirme
-
+             await webcam.setup({ facingMode: "environment" });
+             await webcam.play();
+/*
             const constraints = {
                 video: {
                     facingMode: { ideal: facingMode },
@@ -89,9 +91,9 @@
 
             try {
                 console.log("Kamera ayarları:", constraints);
-                //await webcam.setup(constraints);
-                await webcam.setup({ deviceId: devices[0].deviceId })
-                document.getElementById("deviceID").textContent = devices[0].deviceId;
+                await webcam.setup(constraints);
+                //await webcam.setup({ deviceId: devices[0].deviceId })
+                //document.getElementById("deviceID").textContent = devices[0].deviceId;
                 await webcam.play();
                 console.log(`Kamera başlatıldı: ${facingMode}`);
             } catch (error) {
@@ -107,7 +109,7 @@
                     await webcam.play();
                     document.getElementById("camera-facing").value = "environment"; // user*
                 }
-            }
+            }*/
         }
 
         async function loop(timestamp) {
