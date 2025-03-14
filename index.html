@@ -11,7 +11,6 @@
 <title>mediaDevices.enumerateDevices()</title>
 
 <style>
-/* Mevcut stil kodları değişmedi, aynı bırakıldı */
 a {
   color: #15c;
   font-weight: 300;
@@ -62,6 +61,12 @@ video {
   width: 100%;
 }
 
+button#toggleCamera {
+  padding: 8px 16px;
+  font-size: 16px;
+  margin: 10px 0;
+}
+
 @media (min-width: 550px) {
   body {
     font-size: 16px;
@@ -101,11 +106,15 @@ video {
   </div>
 
   <video autoplay muted playsinline></video>
+  <button id="toggleCamera" style="display: none;">Kamerayı Değiştir</button>
 
   <script>
 
 var videoElement = document.querySelector('video');
 var videoSelect = document.querySelector('select#videoSource');
+var toggleCameraButton = document.querySelector('#toggleCamera');
+var currentFacingMode = 'user'; // Başlangıçta ön kamera
+var videoDevices = [];
 
 videoSelect.onchange = getStream;
 
@@ -118,6 +127,10 @@ function getDevices() {
 function gotDevices(deviceInfos) {
   window.deviceInfos = deviceInfos;
   console.log('Available input and output devices:', deviceInfos);
+  
+  // Video cihazlarını filtrele
+  videoDevices = deviceInfos.filter(device => device.kind === 'videoinput');
+  
   for (const deviceInfo of deviceInfos) {
     const option = document.createElement('option');
     option.value = deviceInfo.deviceId;
@@ -125,6 +138,12 @@ function gotDevices(deviceInfos) {
       option.text = deviceInfo.label || `Camera ${videoSelect.length + 1}`;
       videoSelect.appendChild(option);
     }
+  }
+  
+  // Kamera sayısı 1'den fazlaysa butonu göster
+  if (videoDevices.length > 1) {
+    toggleCameraButton.style.display = 'block';
+    toggleCameraButton.addEventListener('click', toggleCamera);
   }
 }
 
@@ -135,34 +154,42 @@ function getStream() {
     });
   }
 
-  // Önce ön kamerayı aç
-  const frontCameraConstraints = {
+  const constraints = {
     video: {
-      facingMode: "user" // Ön kamera
+      facingMode: currentFacingMode
     }
   };
 
-  return navigator.mediaDevices.getUserMedia(frontCameraConstraints)
+  return navigator.mediaDevices.getUserMedia(constraints)
     .then(stream => {
       window.stream = stream;
       videoElement.srcObject = stream;
+    })
+    .catch(handleError);
+}
 
-      // 1 saniye sonra arka kameraya geç
-      setTimeout(() => {
-        if (window.stream) {
-          window.stream.getTracks().forEach(track => track.stop());
-        }
+function toggleCamera() {
+  // Mevcut akışı durdur
+  if (window.stream) {
+    window.stream.getTracks().forEach(track => {
+      track.stop();
+    });
+  }
 
-        const backCameraConstraints = {
-          video: {
-            facingMode: "environment" // Arka kamera
-          }
-        };
+  // Kamera modunu değiştir
+  currentFacingMode = currentFacingMode === 'user' ? 'environment' : 'user';
+  
+  // Yeni kamera ile akışı başlat
+  const constraints = {
+    video: {
+      facingMode: currentFacingMode
+    }
+  };
 
-        navigator.mediaDevices.getUserMedia(backCameraConstraints)
-          .then(gotStream)
-          .catch(handleError);
-      }, 1000); // 1000 ms = 1 saniye
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(stream => {
+      window.stream = stream;
+      videoElement.srcObject = stream;
     })
     .catch(handleError);
 }
