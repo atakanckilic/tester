@@ -20,6 +20,7 @@
     </style>
 </head>
 <body>
+    <div id="deviceID">#</div>
     <div>Teachable Machine Image Model</div>
     <button type="button" onclick="init()">Start</button>
     <div id="controls">
@@ -44,6 +45,7 @@
     <script type="text/javascript">
         const URL = "https://teachablemachine.withgoogle.com/models/afVbR2wifH/";
         const devices = await navigator.mediaDevices.enumerateDevices();
+        document.getElementByID
         let model, webcam, labelContainer, maxPredictions;
         let lastFrameTime = performance.now();
         let frameCount = 0;
@@ -89,6 +91,7 @@
                 console.log("Kamera ayarları:", constraints);
                 //await webcam.setup(constraints);
                 await webcam.setup({ deviceId: devices[0].deviceId })
+                document.getElementById("deviceID").textContent = devices[0].deviceId;
                 await webcam.play();
                 console.log(`Kamera başlatıldı: ${facingMode}`);
             } catch (error) {
@@ -100,6 +103,7 @@
                     constraints.video.facingMode = { exact: "environment" }; // user*
                     //await webcam.setup(constraints);
                     await webcam.setup({ deviceId: devices[0].deviceId })
+                    document.getElementById("deviceID").textContent = devices[0].deviceId;
                     await webcam.play();
                     document.getElementById("camera-facing").value = "environment"; // user*
                 }
