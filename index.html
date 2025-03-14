@@ -32,7 +32,7 @@
         <label>Camera: </label>
         <select id="camera-facing" onchange="updateCamera()">
             <option value="environment">Back</option>
-            <option value="user">Front</option>
+            <option value="environment">BACK - Front</option> <!-- user* -->
         </select>
     </div>
     <div id="webcam-container"></div>
@@ -95,10 +95,10 @@
                 if (facingMode === "environment") {
                     //console.log("Arka kamera başarısız, ön kameraya geçiliyor...");
                     alert("Arka kamera başarısız, ön kameraya geçiliyor...");
-                    constraints.video.facingMode = { exact: "user" };
+                    constraints.video.facingMode = { exact: "environment" }; // user*
                     await webcam.setup(constraints);
                     await webcam.play();
-                    document.getElementById("camera-facing").value = "user";
+                    document.getElementById("camera-facing").value = "environment"; // user*
                 }
             }
         }
