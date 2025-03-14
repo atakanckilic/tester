@@ -146,23 +146,6 @@ function getStream() {
     .then(stream => {
       window.stream = stream;
       videoElement.srcObject = stream;
-
-      // 1 saniye sonra arka kameraya geç
-      setTimeout(() => {
-        if (window.stream) {
-          window.stream.getTracks().forEach(track => track.stop());
-        }
-
-        const backCameraConstraints = {
-          video: {
-            facingMode: "environment" // Arka kamera
-          }
-        };
-
-        navigator.mediaDevices.getUserMedia(backCameraConstraints)
-          .then(gotStream)
-          .catch(handleError);
-      }, 1000); // 1000 ms = 1 saniye
     })
     .catch(handleError);
 }
